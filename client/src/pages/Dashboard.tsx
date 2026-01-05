@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ReviewCard } from "@/components/reviews/ReviewCard";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { 
   Star, 
   TrendingUp, 

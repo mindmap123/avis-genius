@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Users, ShoppingBag, Target, ArrowUpRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const revenueData = [
   { month: 'Jan', revenue: 12000, reviews: 45 },
