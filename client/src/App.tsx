@@ -1,22 +1,78 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import Reviews from "@/pages/Reviews";
 import Analytics from "@/pages/Analytics";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+// Admin pages
+import AdminDashboard from "@/pages/admin/Dashboard";
+import AdminClients from "@/pages/admin/Clients";
+import AdminClientDetail from "@/pages/admin/ClientDetail";
+import AdminEstablishments from "@/pages/admin/Establishments";
+import AdminAiConfig from "@/pages/admin/AiConfig";
+import AdminAnalytics from "@/pages/admin/Analytics";
+import AdminSystem from "@/pages/admin/System";
+import { Loader2 } from "lucide-react";
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+
+  return <Component />;
+}
+
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading, isAdmin } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return <Redirect to="/dashboard" />;
+  }
+
+  return <Component />;
+}
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/reviews" component={Reviews} />
-      <Route path="/analytics" component={Analytics} />
-      <Route path="/settings" component={Dashboard} /> {/* Mock settings */}
+      <Route path="/login" component={Login} />
+      <Route path="/dashboard">{() => <ProtectedRoute component={Dashboard} />}</Route>
+      <Route path="/reviews">{() => <ProtectedRoute component={Reviews} />}</Route>
+      <Route path="/analytics">{() => <ProtectedRoute component={Analytics} />}</Route>
+      <Route path="/settings">{() => <ProtectedRoute component={Dashboard} />}</Route>
+      {/* Admin routes */}
+      <Route path="/admin">{() => <AdminRoute component={AdminDashboard} />}</Route>
+      <Route path="/admin/clients">{() => <AdminRoute component={AdminClients} />}</Route>
+      <Route path="/admin/clients/:id">{() => <AdminRoute component={AdminClientDetail} />}</Route>
+      <Route path="/admin/establishments">{() => <AdminRoute component={AdminEstablishments} />}</Route>
+      <Route path="/admin/ai-config">{() => <AdminRoute component={AdminAiConfig} />}</Route>
+      <Route path="/admin/analytics">{() => <AdminRoute component={AdminAnalytics} />}</Route>
+      <Route path="/admin/system">{() => <AdminRoute component={AdminSystem} />}</Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -25,10 +81,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

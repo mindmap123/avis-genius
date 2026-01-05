@@ -1,12 +1,14 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   LayoutDashboard, 
   MessageSquare, 
   BarChart3, 
   Settings, 
   LogOut,
-  Globe
+  Globe,
+  Shield
 } from "lucide-react";
 import logoImage from "@assets/generated_images/minimalist_geometric_logo_icon_for_reputation_software.png";
 import avatarImage from "@assets/generated_images/portrait_of_a_smiling_restaurant_owner.png";
@@ -22,6 +24,7 @@ const navigation = [
 export function Sidebar() {
   const [location] = useLocation();
   const [lang, setLang] = useState<"fr" | "en">("fr");
+  const { user, isAdmin, logout } = useAuth();
 
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl z-20">
@@ -63,7 +66,15 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="mt-8 px-3">
+        <div className="mt-8 px-3 space-y-2">
+          {isAdmin && (
+            <Link href="/admin">
+              <a className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 transition-colors text-sm font-medium">
+                <Shield className="h-4 w-4" />
+                Admin Panel
+              </a>
+            </Link>
+          )}
           <div className="flex items-center justify-between p-2 rounded-lg bg-sidebar-accent/30 text-xs">
             <span className="text-sidebar-foreground/50 flex items-center gap-2">
               <Globe className="h-3 w-3" /> Language
@@ -91,13 +102,15 @@ export function Sidebar() {
           />
           <div className="flex-1 overflow-hidden">
             <p className="truncate text-sm font-medium text-white group-hover:text-sidebar-primary-foreground transition-colors">
-              Marc Dubois
+              {user?.name || "Utilisateur"}
             </p>
             <p className="truncate text-xs text-sidebar-foreground/50">
-              Le Petit Bistro
+              {user?.email || ""}
             </p>
           </div>
-          <LogOut className="h-4 w-4 text-sidebar-foreground/50 hover:text-white transition-colors" />
+          <button onClick={logout}>
+            <LogOut className="h-4 w-4 text-sidebar-foreground/50 hover:text-white transition-colors" />
+          </button>
         </div>
       </div>
     </div>
