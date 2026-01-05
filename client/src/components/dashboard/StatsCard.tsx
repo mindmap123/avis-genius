@@ -1,12 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 
 interface StatsCardProps {
   title: string;
   value: string;
   trend?: string;
-  trendUp?: boolean;
+  trendUp?: boolean | null;
   icon: LucideIcon;
   description?: string;
   className?: string;
@@ -39,11 +39,14 @@ export function StatsCard({
           {(trend || description) && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               {trend && (
-                <span className={cn("font-medium", 
+                <span className={cn("font-medium flex items-center gap-0.5", 
                   trendUp === true ? "text-emerald-600" : 
                   trendUp === false ? "text-red-600" : 
                   "text-blue-600"
                 )}>
+                  {trendUp === true && <ArrowUpRight className="h-3 w-3" />}
+                  {trendUp === false && <ArrowDownRight className="h-3 w-3" />}
+                  {trendUp === null && <Minus className="h-3 w-3" />}
                   {trend}
                 </span>
               )}

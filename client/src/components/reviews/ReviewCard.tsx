@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Star, ThumbsUp, MapPin, CheckCircle2, RefreshCw, Pencil } from "lucide-react";
+import { Star, CheckCircle2, RefreshCw, Pencil, AlertCircle, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface ReviewCardProps {
   id: string;
@@ -17,8 +17,10 @@ interface ReviewCardProps {
   content: string;
   aiResponse: string;
   platform?: "google" | "tripadvisor";
-  sentiment?: "positive" | "negative" | "neutral";
   status?: "pending" | "posted";
+  sentiment?: "urgent" | "positive" | "neutral";
+  productMentioned?: string;
+  storeLocation?: string;
 }
 
 export function ReviewCard({
@@ -29,7 +31,10 @@ export function ReviewCard({
   content,
   aiResponse: initialAiResponse,
   platform = "google",
-  status = "pending"
+  status = "pending",
+  sentiment,
+  productMentioned,
+  storeLocation
 }: ReviewCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [response, setResponse] = useState(initialAiResponse);
@@ -38,20 +43,17 @@ export function ReviewCard({
 
   const handlePost = () => {
     setIsPosted(true);
-    // In a real app, this would make an API call
   };
 
   const handleRegenerate = () => {
     setIsRegenerating(true);
     setTimeout(() => {
-      setResponse("Thanks so much for the detailed feedback! We're thrilled you enjoyed the Truffle Pasta. It's definitely a crowd favorite. We hope to see you again soon for dinner!");
+      setResponse(`Bonjour ${reviewerName.split(' ')[0]},\nMerci pour votre retour sur le ${productMentioned || 'produit'}. Nous sommes ravis que vous ayez apprécié votre visite chez France Canapé ${storeLocation || 'Marseille'}. Au plaisir de vous revoir !\nCordialement, Éric (Gérant)`);
       setIsRegenerating(false);
-    }, 1500);
+    }, 1000);
   };
 
-  if (isPosted) {
-    return null; // Or show a simplified "Posted" state, but for Inbox Zero we usually remove it
-  }
+  if (isPosted) return null;
 
   return (
     <motion.div
@@ -61,12 +63,21 @@ export function ReviewCard({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3 }}
     >
-      <Card className="overflow-hidden border-border/60 shadow-sm hover:shadow-md transition-all duration-300">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4 bg-slate-50/50">
+      <Card className={cn(
+        "overflow-hidden border-border/60 shadow-sm transition-all duration-300",
+        sentiment === 'urgent' && "border-red-200 ring-1 ring-red-100 shadow-red-100"
+      )}>
+        <CardHeader className={cn(
+          "flex flex-row items-start justify-between space-y-0 pb-4",
+          sentiment === 'urgent' ? "bg-red-50/50" : "bg-slate-50/50"
+        )}>
           <div className="flex gap-4">
             <Avatar className="h-10 w-10 border border-slate-200">
               <AvatarImage src={reviewerImage} />
-              <AvatarFallback className="bg-blue-100 text-blue-700 font-bold">
+              <AvatarFallback className={cn(
+                "font-bold",
+                sentiment === 'urgent' ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+              )}>
                 {reviewerName.charAt(0)}
               </AvatarFallback>
             </Avatar>
@@ -74,9 +85,9 @@ export function ReviewCard({
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-foreground">{reviewerName}</h3>
                 <span className="text-xs text-muted-foreground">• {date}</span>
-                {platform === "google" && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-blue-200 text-blue-700 bg-blue-50">
-                    Google
+                {sentiment === 'urgent' && (
+                  <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200 gap-1 h-5 px-1.5 text-[10px] uppercase font-bold tracking-wider">
+                    <AlertCircle className="h-3 w-3" /> Urgent
                   </Badge>
                 )}
               </div>
@@ -90,32 +101,50 @@ export function ReviewCard({
                     )}
                   />
                 ))}
+                {storeLocation && (
+                  <span className="ml-2 text-[10px] text-muted-foreground font-medium uppercase">
+                    📍 {storeLocation}
+                  </span>
+                )}
               </div>
             </div>
           </div>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-blue-200 text-blue-700 bg-blue-50">
+            {platform.toUpperCase()}
+          </Badge>
         </CardHeader>
         
         <CardContent className="pt-4 space-y-6">
-          <div className="text-sm text-foreground/80 leading-relaxed">
+          <div className="text-sm text-foreground/80 leading-relaxed italic border-l-2 border-slate-200 pl-4 py-1">
             "{content}"
           </div>
 
           <div className="relative">
-            {/* AI Response Section */}
-            <div className="bg-blue-50/50 rounded-xl border border-blue-100 p-4 transition-all focus-within:ring-2 focus-within:ring-blue-200 focus-within:border-blue-300">
-              <div className="flex items-center justify-between mb-2">
+            <div className={cn(
+              "rounded-xl border p-4 transition-all focus-within:ring-2",
+              sentiment === 'urgent' 
+                ? "bg-red-50/30 border-red-100 focus-within:ring-red-100 focus-within:border-red-200" 
+                : "bg-blue-50/30 border-blue-100 focus-within:ring-blue-100 focus-within:border-blue-200"
+            )}>
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 rounded-full bg-gradient-to-tr from-blue-500 to-emerald-400 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white">AI</span>
+                  <div className={cn(
+                    "h-5 w-5 rounded-full flex items-center justify-center",
+                    sentiment === 'urgent' ? "bg-red-500" : "bg-blue-500"
+                  )}>
+                    <MessageSquare className="h-3 w-3 text-white" />
                   </div>
-                  <span className="text-xs font-medium text-blue-900">Suggested Response</span>
+                  <span className={cn(
+                    "text-xs font-bold uppercase tracking-wide",
+                    sentiment === 'urgent' ? "text-red-700" : "text-blue-700"
+                  )}>Réponse Suggérée (IA)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   {!isEditing && (
                      <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-slate-400 hover:text-blue-600"
+                      className="h-6 w-6 text-slate-400 hover:text-slate-600"
                       onClick={() => setIsEditing(true)}
                     >
                       <Pencil className="h-3 w-3" />
@@ -124,7 +153,7 @@ export function ReviewCard({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-6 w-6 text-slate-400 hover:text-blue-600"
+                    className="h-6 w-6 text-slate-400 hover:text-slate-600"
                     onClick={handleRegenerate}
                     disabled={isRegenerating}
                   >
@@ -133,38 +162,32 @@ export function ReviewCard({
                 </div>
               </div>
               
-              {isEditing ? (
-                <Textarea
-                  value={response}
-                  onChange={(e) => setResponse(e.target.value)}
-                  className="min-h-[100px] border-none bg-transparent resize-none focus-visible:ring-0 p-0 text-sm shadow-none"
-                />
-              ) : (
-                <p className={cn("text-sm text-slate-700 leading-relaxed", isRegenerating && "opacity-50 blur-[1px] transition-all")}>
-                  {response}
-                </p>
-              )}
+              <Textarea
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                readOnly={!isEditing}
+                className={cn(
+                  "min-h-[100px] border-none bg-transparent resize-none focus-visible:ring-0 p-0 text-sm shadow-none font-medium leading-relaxed",
+                  !isEditing && "cursor-default",
+                  isRegenerating && "opacity-50 blur-[1px]"
+                )}
+              />
             </div>
           </div>
         </CardContent>
 
         <CardFooter className="bg-slate-50/30 py-3 px-6 flex justify-end gap-2 border-t border-slate-100">
-          {isEditing ? (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
-          ) : (
-            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700">
-              Skip
-            </Button>
-          )}
+          <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-700">Ignorer</Button>
           <Button 
             size="sm" 
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm hover:shadow-md transition-all"
+            className={cn(
+              "text-white font-bold shadow-sm hover:shadow-md transition-all px-4",
+              sentiment === 'urgent' ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+            )}
             onClick={handlePost}
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            {isEditing ? "Save & Post" : "Approve & Post"}
+            {isEditing ? "Enregistrer & Publier" : "Approuver & Publier"}
           </Button>
         </CardFooter>
       </Card>
