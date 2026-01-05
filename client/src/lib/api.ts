@@ -12,10 +12,7 @@ export function clearToken(): void {
   localStorage.removeItem("token");
 }
 
-async function request<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -23,43 +20,37 @@ async function request<T>(
     ...options.headers,
   };
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: "Request failed" }));
     throw new Error(error.error || "Request failed");
   }
 
-  if (res.status === 204) {
-    return undefined as T;
-  }
-
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
 // Auth
 export interface AuthResponse {
-  user: { id: string; email: string; name: string };
+  user: { id: string; email: string; name: string; role: string };
   token: string;
 }
 
 export const auth = {
   login: (email: string, password: string) =>
-    request<AuthResponse>("/auth/login", {
+    request<AuthResponse>("/auth?action=login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
   register: (email: string, password: string, name: string) =>
-    request<AuthResponse>("/auth/register", {
+    request<AuthResponse>("/auth?action=register", {
       method: "POST",
       body: JSON.stringify({ email, password, name }),
     }),
 
-  me: () => request<{ user: AuthResponse["user"] }>("/auth/me"),
+  me: () => request<{ user: AuthResponse["user"] }>("/auth?action=me"),
 };
 
 // Establishments
@@ -77,23 +68,12 @@ export interface Establishment {
 
 export const establishments = {
   list: () => request<Establishment[]>("/establishments"),
-  
-  get: (id: string) => request<Establishment>(`/establishments/${id}`),
-  
+  get: (id: string) => request<Establishment>(`/establishments?id=${id}`),
   create: (data: Partial<Establishment>) =>
-    request<Establishment>("/establishments", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-  
+    request<Establishment>("/establishments", { method: "POST", body: JSON.stringify(data) }),
   update: (id: string, data: Partial<Establishment>) =>
-    request<Establishment>(`/establishments/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    }),
-  
-  delete: (id: string) =>
-    request<void>(`/establishments/${id}`, { method: "DELETE" }),
+    request<Establishment>(`/establishments?id=${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (id: string) => request<void>(`/establishments?id=${id}`, { method: "DELETE" }),
 };
 
 // Reviews
@@ -119,15 +99,8 @@ export const reviews = {
     const query = searchParams.toString();
     return request<Review[]>(`/reviews${query ? `?${query}` : ""}`);
   },
-
   generateResponse: (id: string) =>
-    request<{ response: string; responseId: string }>(`/reviews/${id}/generate`, {
-      method: "POST",
-    }),
-
+    request<{ response: string; responseId: string }>(`/reviews?id=${id}&action=generate`, { method: "POST" }),
   respond: (id: string, finalText: string) =>
-    request<{ id: string }>(`/reviews/${id}/respond`, {
-      method: "POST",
-      body: JSON.stringify({ finalText }),
-    }),
+    request<{ id: string }>(`/reviews?id=${id}&action=respond`, { method: "POST", body: JSON.stringify({ finalText }) }),
 };

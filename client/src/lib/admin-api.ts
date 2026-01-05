@@ -92,29 +92,20 @@ export interface ActivityLog {
 
 // API Functions
 export const adminApi = {
-  // Stats
-  getStats: () => request<AdminStats>("/stats"),
-
-  // Clients
-  getClients: () => request<Client[]>("/clients"),
-  getClient: (id: string) => request<Client & { establishments: AdminEstablishment[] }>(`/clients/${id}`),
+  getStats: () => request<AdminStats>("?resource=stats"),
+  getClients: () => request<Client[]>("?resource=clients"),
+  getClient: (id: string) => request<Client & { establishments: AdminEstablishment[] }>(`?resource=clients&id=${id}`),
   createClient: (data: { email: string; password: string; name: string; role?: string }) =>
-    request<Client>("/clients", { method: "POST", body: JSON.stringify(data) }),
+    request<Client>("?resource=clients", { method: "POST", body: JSON.stringify(data) }),
   updateClient: (id: string, data: Partial<Client & { config: Partial<ClientConfig> }>) =>
-    request<Client>(`/clients/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteClient: (id: string) => request<void>(`/clients/${id}`, { method: "DELETE" }),
-
-  // Establishments
-  getEstablishments: () => request<AdminEstablishment[]>("/establishments"),
-
-  // AI Templates
-  getAiTemplates: () => request<AiTemplate[]>("/ai-templates"),
+    request<Client>(`?resource=clients&id=${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteClient: (id: string) => request<void>(`?resource=clients&id=${id}`, { method: "DELETE" }),
+  getEstablishments: () => request<AdminEstablishment[]>("?resource=establishments"),
+  getAiTemplates: () => request<AiTemplate[]>("?resource=ai-templates"),
   createAiTemplate: (data: { name: string; description?: string; promptTemplate: string; category?: string }) =>
-    request<AiTemplate>("/ai-templates", { method: "POST", body: JSON.stringify(data) }),
+    request<AiTemplate>("?resource=ai-templates", { method: "POST", body: JSON.stringify(data) }),
   updateAiTemplate: (id: string, data: Partial<AiTemplate>) =>
-    request<AiTemplate>(`/ai-templates/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteAiTemplate: (id: string) => request<void>(`/ai-templates/${id}`, { method: "DELETE" }),
-
-  // Activity Logs
-  getActivityLogs: (limit = 100) => request<ActivityLog[]>(`/activity-logs?limit=${limit}`),
+    request<AiTemplate>(`?resource=ai-templates&id=${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteAiTemplate: (id: string) => request<void>(`?resource=ai-templates&id=${id}`, { method: "DELETE" }),
+  getActivityLogs: (limit = 100) => request<ActivityLog[]>(`?resource=activity-logs&limit=${limit}`),
 };
