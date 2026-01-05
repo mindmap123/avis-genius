@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAuthUser } from "./lib/auth";
 import { 
-  getReviewsByEstablishment, getEstablishment, getEstablishmentsByUser,
-  getReview, updateReview, createResponse, getResponseByReview, updateResponse 
+  getReviewsByEstablishment, getEstablishment, getEstablishmentIdsForUser,
+  getReview, updateReview, createResponse, getResponseByReview, updateResponse,
+  getUserPermissionForEstablishment, getReviewsByEstablishments
 } from "./lib/storage";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -19,17 +20,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // GET /api/reviews - List reviews
     if (req.method === "GET" && !id) {
+      const accessibleIds = await getEstablishmentIdsForUser(user);
+      
       if (typeof establishmentId === "string") {
-        const establishment = await getEstablishment(establishmentId);
-        if (!establishment || establishment.userId !== user.id) {
-          return res.status(404).json({ error: "Not found" });
+        if (!accessibleIds.includes(establishmentId)) {
+          return res.status(403).json({ error: "Access denied" });
         }
         const reviews = await getReviewsByEstablishment(establishmentId);
         return res.status(200).json(reviews);
       }
-      const establishments = await getEstablishmentsByUser(user.id);
-      const allReviews = await Promise.all(establishments.map(e => getReviewsByEstablishment(e.id)));
-      let reviews = allReviews.flat();
+      
+      let reviews = await getReviewsByEstablishments(accessibleIds);
       if (typeof status === "string") {
         reviews = reviews.filter(r => r.status === status);
       }
@@ -42,8 +43,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!review) return res.status(404).json({ error: "Review not found" });
       
       const establishment = await getEstablishment(review.establishmentId);
-      if (!establishment || establishment.userId !== user.id) {
-        return res.status(403).json({ error: "Forbidden" });
+      if (!establishment) return res.status(404).json({ error: "Establishment not found" });
+      
+      // Check access
+      const accessibleIds = await getEstablishmentIdsForUser(user);
+      if (!accessibleIds.includes(establishment.id)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Check respond permission for manager/viewer
+      if (user.role === "manager" || user.role === "viewer") {
+        const perm = await getUserPermissionForEstablishment(user.id, establishment.id);
+        if (!perm?.canRespond) {
+          return res.status(403).json({ error: "You don't have permission to respond to reviews" });
+        }
       }
 
       const toneMap: Record<string, string> = {
@@ -70,9 +83,9 @@ Génère uniquement la réponse, sans guillemets.`;
 
       let response = await getResponseByReview(id as string);
       if (response) {
-        response = await updateResponse(response.id, { aiGeneratedText });
+        response = await updateResponse(response.id, { aiGeneratedText, userId: user.id });
       } else {
-        response = await createResponse({ reviewId: id as string, aiGeneratedText });
+        response = await createResponse({ reviewId: id as string, aiGeneratedText, userId: user.id });
       }
 
       return res.status(200).json({ response: aiGeneratedText, responseId: response?.id });
@@ -84,8 +97,20 @@ Génère uniquement la réponse, sans guillemets.`;
       if (!review) return res.status(404).json({ error: "Review not found" });
       
       const establishment = await getEstablishment(review.establishmentId);
-      if (!establishment || establishment.userId !== user.id) {
-        return res.status(403).json({ error: "Forbidden" });
+      if (!establishment) return res.status(404).json({ error: "Establishment not found" });
+      
+      // Check access
+      const accessibleIds = await getEstablishmentIdsForUser(user);
+      if (!accessibleIds.includes(establishment.id)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Check respond permission for manager/viewer
+      if (user.role === "manager" || user.role === "viewer") {
+        const perm = await getUserPermissionForEstablishment(user.id, establishment.id);
+        if (!perm?.canRespond) {
+          return res.status(403).json({ error: "You don't have permission to respond to reviews" });
+        }
       }
 
       const { finalText } = req.body;
@@ -93,7 +118,12 @@ Génère uniquement la réponse, sans guillemets.`;
 
       let response = await getResponseByReview(id as string);
       if (response) {
-        response = await updateResponse(response.id, { finalText, postedToGoogle: true, postedAt: new Date() });
+        response = await updateResponse(response.id, { 
+          finalText, 
+          postedToGoogle: true, 
+          postedAt: new Date(),
+          userId: user.id,
+        });
       } else {
         response = await createResponse({
           reviewId: id as string,
@@ -101,6 +131,7 @@ Génère uniquement la réponse, sans guillemets.`;
           finalText,
           postedToGoogle: true,
           postedAt: new Date(),
+          userId: user.id,
         });
       }
       await updateReview(id as string, { status: "responded" });

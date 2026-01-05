@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { demoClients } from "@/lib/demo-data";
+import { demoOrganizations } from "@/lib/demo-data";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -20,69 +20,93 @@ import {
 import { Label } from "@/components/ui/label";
 import { 
   Plus, Search, Building2, MoreHorizontal, Trash2, Eye, Edit, 
-  UserX, Download, Filter 
+  UserX, Download, Filter, Users
 } from "lucide-react";
 import { Link } from "wouter";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 
-export default function AdminClients() {
+type BillingStatus = "active" | "trial" | "past_due" | "cancelled";
+
+export default function AdminOrganizations() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
 
-  const clients = demoClients;
+  const organizations = demoOrganizations;
 
-  const filteredClients = clients.filter((c) => {
-    const matchesSearch = 
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.email.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+  const getStatus = (org: typeof organizations[0]): BillingStatus => {
+    return (org.billing?.status as BillingStatus) || "trial";
+  };
+
+  const filteredOrgs = organizations.filter((org) => {
+    const matchesSearch = org.name.toLowerCase().includes(search.toLowerCase());
+    const status = getStatus(org);
+    const matchesStatus = statusFilter === "all" || status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const handleExportCSV = () => {
-    const headers = ["Nom", "Email", "Plan", "Établissements", "Statut", "Inscrit le"];
-    const rows = filteredClients.map(c => [
-      c.name, c.email, c.plan, c.establishmentsCount, c.status, 
-      format(new Date(c.createdAt), "dd/MM/yyyy")
+    const headers = ["Organisation", "Plan", "Utilisateurs", "Établissements", "Statut", "Créé le"];
+    const rows = filteredOrgs.map(org => [
+      org.name, 
+      org.billing?.planName || "Trial", 
+      org.usersCount, 
+      org.establishmentsCount, 
+      getStatus(org), 
+      format(new Date(org.createdAt), "dd/MM/yyyy")
     ]);
     const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "clients-avis-genius.csv";
+    a.download = "organisations-avis-genius.csv";
     a.click();
-    toast({ title: "Export réussi", description: `${filteredClients.length} clients exportés` });
+    toast({ title: "Export réussi", description: `${filteredOrgs.length} organisations exportées` });
   };
 
-  const handleSuspend = (clientName: string) => {
-    toast({ title: "Client suspendu", description: `${clientName} a été suspendu` });
+  const handleSuspend = (orgName: string) => {
+    toast({ title: "Organisation suspendue", description: `${orgName} a été suspendue` });
   };
 
-  const handleDelete = (clientName: string) => {
-    toast({ title: "Client supprimé", description: `${clientName} a été supprimé`, variant: "destructive" });
+  const handleDelete = (orgName: string) => {
+    toast({ title: "Organisation supprimée", description: `${orgName} a été supprimée`, variant: "destructive" });
   };
 
   const statusCounts = {
-    all: clients.length,
-    active: clients.filter(c => c.status === "active").length,
-    trial: clients.filter(c => c.status === "trial").length,
-    suspended: clients.filter(c => c.status === "suspended").length,
+    all: organizations.length,
+    active: organizations.filter(o => getStatus(o) === "active").length,
+    trial: organizations.filter(o => getStatus(o) === "trial").length,
+    cancelled: organizations.filter(o => getStatus(o) === "cancelled").length,
+  };
+
+  const getStatusBadge = (status: BillingStatus) => {
+    switch (status) {
+      case "active":
+        return <Badge className="bg-emerald-500/20 text-emerald-500">Actif</Badge>;
+      case "trial":
+        return <Badge className="bg-blue-500/20 text-blue-500">Trial</Badge>;
+      case "past_due":
+        return <Badge className="bg-amber-500/20 text-amber-500">Impayé</Badge>;
+      case "cancelled":
+        return <Badge className="bg-red-500/20 text-red-500">Annulé</Badge>;
+      default:
+        return <Badge className="bg-slate-500/20 text-slate-500">{status}</Badge>;
+    }
   };
 
   return (
-    <AdminLayout title="Gestion Clients" description="Gérez les comptes clients de la plateforme">
+    <AdminLayout title="Organisations" description="Gérez les organisations de la plateforme">
       {/* Filters Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <Input
-              placeholder="Rechercher un client..."
+              placeholder="Rechercher une organisation..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 bg-slate-900 border-slate-700 text-white"
@@ -97,7 +121,7 @@ export default function AdminClients() {
               <SelectItem value="all">Tous ({statusCounts.all})</SelectItem>
               <SelectItem value="active">Actifs ({statusCounts.active})</SelectItem>
               <SelectItem value="trial">Trial ({statusCounts.trial})</SelectItem>
-              <SelectItem value="suspended">Suspendus ({statusCounts.suspended})</SelectItem>
+              <SelectItem value="cancelled">Annulés ({statusCounts.cancelled})</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -109,28 +133,30 @@ export default function AdminClients() {
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button className="bg-amber-500 hover:bg-amber-600 text-slate-900">
-                <Plus className="h-4 w-4 mr-2" /> Nouveau Client
+                <Plus className="h-4 w-4 mr-2" /> Nouvelle Organisation
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-slate-900 border-slate-800">
               <DialogHeader>
-                <DialogTitle className="text-white">Créer un nouveau client</DialogTitle>
+                <DialogTitle className="text-white">Créer une nouvelle organisation</DialogTitle>
               </DialogHeader>
               <form className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-white">Nom</Label>
+                  <Label className="text-white">Nom de l'organisation</Label>
                   <Input name="name" required className="bg-slate-800 border-slate-700 text-white" />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-white">Email</Label>
-                  <Input name="email" type="email" required className="bg-slate-800 border-slate-700 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-white">Mot de passe</Label>
-                  <Input name="password" type="password" required minLength={6} className="bg-slate-800 border-slate-700 text-white" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-white">Max utilisateurs</Label>
+                    <Input name="maxUsers" type="number" defaultValue={5} className="bg-slate-800 border-slate-700 text-white" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">Max établissements</Label>
+                    <Input name="maxEstablishments" type="number" defaultValue={10} className="bg-slate-800 border-slate-700 text-white" />
+                  </div>
                 </div>
                 <Button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900">
-                  Créer le client
+                  Créer l'organisation
                 </Button>
               </form>
             </DialogContent>
@@ -138,62 +164,59 @@ export default function AdminClients() {
         </div>
       </div>
 
-
-      {/* Clients Table */}
+      {/* Organizations Table */}
       <Card className="bg-slate-900 border-slate-800">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-white">Client</TableHead>
+                <TableHead className="text-white">Organisation</TableHead>
                 <TableHead className="text-white">Plan</TableHead>
+                <TableHead className="text-white">Utilisateurs</TableHead>
                 <TableHead className="text-white">Établissements</TableHead>
                 <TableHead className="text-white">Statut</TableHead>
-                <TableHead className="text-white">Dernière connexion</TableHead>
+                <TableHead className="text-white">Créé le</TableHead>
                 <TableHead className="text-white w-12">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClients.length === 0 ? (
+              {filteredOrgs.length === 0 ? (
                 <TableRow className="border-slate-800">
-                  <TableCell colSpan={6} className="text-center text-white py-8">
-                    Aucun client trouvé
+                  <TableCell colSpan={7} className="text-center text-white py-8">
+                    Aucune organisation trouvée
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredClients.map((client) => (
-                  <TableRow key={client.id} className="border-slate-800 hover:bg-slate-800/50">
+                filteredOrgs.map((org) => (
+                  <TableRow key={org.id} className="border-slate-800 hover:bg-slate-800/50">
                     <TableCell>
                       <div>
-                        <p className="font-medium text-white">{client.name}</p>
-                        <p className="text-sm text-slate-400">{client.email}</p>
+                        <p className="font-medium text-white">{org.name}</p>
+                        <p className="text-sm text-slate-400">{org.slug}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="border-slate-600 text-white">
-                        {client.plan}
+                        {org.billing?.planName || "Trial"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-white">
-                        <Building2 className="h-4 w-4 text-slate-400" />
-                        {client.establishmentsCount}
+                        <Users className="h-4 w-4 text-slate-400" />
+                        {org.usersCount} / {org.maxUsers}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={
-                        client.status === "active" ? "bg-emerald-500/20 text-emerald-500" :
-                        client.status === "trial" ? "bg-blue-500/20 text-blue-500" :
-                        "bg-red-500/20 text-red-500"
-                      }>
-                        {client.status === "active" ? "Actif" : client.status === "trial" ? "Trial" : "Suspendu"}
-                      </Badge>
+                      <div className="flex items-center gap-1 text-white">
+                        <Building2 className="h-4 w-4 text-slate-400" />
+                        {org.establishmentsCount} / {org.maxEstablishments}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(getStatus(org))}
                     </TableCell>
                     <TableCell className="text-white">
-                      {client.lastLoginAt 
-                        ? format(new Date(client.lastLoginAt), "dd MMM yyyy", { locale: fr })
-                        : "Jamais"
-                      }
+                      {format(new Date(org.createdAt), "dd MMM yyyy", { locale: fr })}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -203,12 +226,17 @@ export default function AdminClients() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-slate-900 border-slate-800">
-                          <Link href={`/admin/clients/${client.id}`}>
+                          <Link href={`/admin/organizations/${org.id}`}>
                             <DropdownMenuItem className="cursor-pointer text-white">
                               <Eye className="h-4 w-4 mr-2" /> Voir détails
                             </DropdownMenuItem>
                           </Link>
-                          <Link href={`/admin/clients/${client.id}`}>
+                          <Link href={`/admin/organizations/${org.id}/users`}>
+                            <DropdownMenuItem className="cursor-pointer text-white">
+                              <Users className="h-4 w-4 mr-2" /> Gérer utilisateurs
+                            </DropdownMenuItem>
+                          </Link>
+                          <Link href={`/admin/organizations/${org.id}`}>
                             <DropdownMenuItem className="cursor-pointer text-white">
                               <Edit className="h-4 w-4 mr-2" /> Modifier
                             </DropdownMenuItem>
@@ -216,13 +244,13 @@ export default function AdminClients() {
                           <DropdownMenuSeparator className="bg-slate-700" />
                           <DropdownMenuItem 
                             className="cursor-pointer text-amber-500 focus:text-amber-500"
-                            onClick={() => handleSuspend(client.name)}
+                            onClick={() => handleSuspend(org.name)}
                           >
                             <UserX className="h-4 w-4 mr-2" /> Suspendre
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="cursor-pointer text-red-500 focus:text-red-500"
-                            onClick={() => handleDelete(client.name)}
+                            onClick={() => handleDelete(org.name)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" /> Supprimer
                           </DropdownMenuItem>

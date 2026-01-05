@@ -12,8 +12,9 @@ import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 // Admin pages
 import AdminDashboard from "@/pages/admin/Dashboard";
-import AdminClients from "@/pages/admin/Clients";
-import AdminClientDetail from "@/pages/admin/ClientDetail";
+import AdminOrganizations from "@/pages/admin/Organizations";
+import AdminOrganizationDetail from "@/pages/admin/OrganizationDetail";
+import AdminOrganizationUsers from "@/pages/admin/OrganizationUsers";
 import AdminEstablishments from "@/pages/admin/Establishments";
 import AdminAiConfig from "@/pages/admin/AiConfig";
 import AdminAnalytics from "@/pages/admin/Analytics";
@@ -67,8 +68,9 @@ function Router() {
       <Route path="/settings">{() => <ProtectedRoute component={Dashboard} />}</Route>
       {/* Admin routes */}
       <Route path="/admin">{() => <AdminRoute component={AdminDashboard} />}</Route>
-      <Route path="/admin/clients">{() => <AdminRoute component={AdminClients} />}</Route>
-      <Route path="/admin/clients/:id">{() => <AdminRoute component={AdminClientDetail} />}</Route>
+      <Route path="/admin/organizations">{() => <AdminRoute component={AdminOrganizations} />}</Route>
+      <Route path="/admin/organizations/:id">{() => <AdminRoute component={AdminOrganizationDetail} />}</Route>
+      <Route path="/admin/organizations/:id/users">{() => <AdminRoute component={AdminOrganizationUsers} />}</Route>
       <Route path="/admin/establishments">{() => <AdminRoute component={AdminEstablishments} />}</Route>
       <Route path="/admin/ai-config">{() => <AdminRoute component={AdminAiConfig} />}</Route>
       <Route path="/admin/analytics">{() => <AdminRoute component={AdminAnalytics} />}</Route>

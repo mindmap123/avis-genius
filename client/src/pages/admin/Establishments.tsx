@@ -4,13 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { demoEstablishments } from "@/lib/demo-data";
+import { demoEstablishments, getOrganizationName } from "@/lib/demo-data";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, MapPin, User, Star, MessageSquare, Download, Filter } from "lucide-react";
+import { Search, MapPin, Briefcase, Star, MessageSquare, Download, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -23,9 +24,10 @@ export default function AdminEstablishments() {
   const establishments = demoEstablishments;
 
   const filtered = establishments.filter((e) => {
+    const orgName = getOrganizationName(e.organizationId);
     const matchesSearch = 
       e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.ownerName.toLowerCase().includes(search.toLowerCase()) ||
+      orgName.toLowerCase().includes(search.toLowerCase()) ||
       e.address?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || 
       (statusFilter === "active" && e.isActive) ||
@@ -34,9 +36,9 @@ export default function AdminEstablishments() {
   });
 
   const handleExportCSV = () => {
-    const headers = ["Nom", "Adresse", "Propriétaire", "Avis", "Note", "Statut"];
+    const headers = ["Nom", "Adresse", "Organisation", "Avis", "Note", "Statut"];
     const rows = filtered.map(e => [
-      e.name, e.address || "", e.ownerName, e.reviewsCount, e.avgRating, e.isActive ? "Actif" : "Inactif"
+      e.name, e.address || "", getOrganizationName(e.organizationId), e.reviewsCount, e.avgRating, e.isActive ? "Actif" : "Inactif"
     ]);
     const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -90,7 +92,7 @@ export default function AdminEstablishments() {
             <TableHeader>
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-white">Établissement</TableHead>
-                <TableHead className="text-white">Propriétaire</TableHead>
+                <TableHead className="text-white">Organisation</TableHead>
                 <TableHead className="text-white">Avis</TableHead>
                 <TableHead className="text-white">Note</TableHead>
                 <TableHead className="text-white">Statut</TableHead>
@@ -119,13 +121,12 @@ export default function AdminEstablishments() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-slate-400" />
-                        <div>
-                          <p className="text-sm text-white">{est.ownerName}</p>
-                          <p className="text-xs text-slate-400">{est.ownerEmail}</p>
+                      <Link href={`/admin/organizations/${est.organizationId}`}>
+                        <div className="flex items-center gap-2 hover:text-amber-500 transition-colors cursor-pointer">
+                          <Briefcase className="h-4 w-4 text-slate-400" />
+                          <span className="text-white">{getOrganizationName(est.organizationId)}</span>
                         </div>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell>
                       <Tooltip>

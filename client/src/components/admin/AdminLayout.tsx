@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   LayoutDashboard,
-  Users,
+  Briefcase,
   Building2,
   Bot,
   BarChart3,
-  Settings,
   LogOut,
   Shield,
   Activity,
@@ -19,7 +18,7 @@ import {
 
 const adminNavItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/clients", icon: Users, label: "Clients" },
+  { href: "/admin/organizations", icon: Briefcase, label: "Organisations" },
   { href: "/admin/establishments", icon: Building2, label: "Établissements" },
   { href: "/admin/ai-config", icon: Bot, label: "Config IA" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },

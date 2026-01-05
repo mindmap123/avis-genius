@@ -33,7 +33,15 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 // Auth
 export interface AuthResponse {
-  user: { id: string; email: string; name: string; role: string };
+  user: { 
+    id: string; 
+    email: string; 
+    name: string; 
+    role: "owner" | "admin" | "manager" | "viewer";
+    isSuperAdmin?: boolean;
+    organizationId?: string;
+    organizationName?: string;
+  };
   token: string;
 }
 
@@ -44,10 +52,10 @@ export const auth = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: (email: string, password: string, name: string) =>
+  register: (email: string, password: string, name: string, organizationName?: string) =>
     request<AuthResponse>("/auth?action=register", {
       method: "POST",
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, organizationName }),
     }),
 
   me: () => request<{ user: AuthResponse["user"] }>("/auth?action=me"),
@@ -56,13 +64,16 @@ export const auth = {
 // Establishments
 export interface Establishment {
   id: string;
-  userId: string;
+  organizationId: string;
   googlePlaceId: string | null;
+  googleAccountId: string | null;
+  googleLocationId: string | null;
   name: string;
   address: string | null;
   phone: string | null;
   aiTone: "formal" | "friendly" | "professional" | null;
   signatureTemplate: string | null;
+  isActive: boolean;
   createdAt: string;
 }
 

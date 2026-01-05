@@ -25,49 +25,67 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 // Types
 export interface AdminStats {
+  totalOrganizations: number;
   totalUsers: number;
   totalEstablishments: number;
   totalReviews: number;
   pendingReviews: number;
+  urgentReviews: number;
   totalResponses: number;
   responseRate: number;
 }
 
-export interface Client {
+export interface Organization {
   id: string;
-  email: string;
   name: string;
-  role: "admin" | "client";
-  isActive: boolean;
-  lastLoginAt: string | null;
-  createdAt: string;
-  establishmentsCount: number;
-  config?: ClientConfig;
-}
-
-export interface ClientConfig {
-  id: string;
-  userId: string;
+  slug: string;
+  logo: string | null;
   defaultAiTone: "formal" | "friendly" | "professional" | null;
   defaultSignature: string | null;
   customPromptInstructions: string | null;
-  autoRespondEnabled: boolean;
-  autoRespondMinRating: number;
-  notifyOnUrgent: boolean;
-  notifyEmail: string | null;
+  maxUsers: number;
   maxEstablishments: number;
+  isActive: boolean;
+  createdAt: string;
+  usersCount?: number;
+  establishmentsCount?: number;
+  billing?: Billing;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string | null;
+  organizationId: string | null;
+  role: "owner" | "admin" | "manager" | "viewer";
+  isSuperAdmin: boolean;
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export interface Billing {
+  id: string;
+  organizationId: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  status: "trial" | "active" | "past_due" | "cancelled";
+  planName: string | null;
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
 }
 
 export interface AdminEstablishment {
   id: string;
-  userId: string;
+  organizationId: string;
   name: string;
   address: string | null;
   phone: string | null;
+  aiTone: "formal" | "friendly" | "professional" | null;
   isActive: boolean;
   createdAt: string;
-  ownerName: string;
-  ownerEmail: string;
+  organizationName?: string;
 }
 
 export interface AiTemplate {
@@ -82,6 +100,7 @@ export interface AiTemplate {
 
 export interface ActivityLog {
   id: string;
+  organizationId: string | null;
   userId: string | null;
   activityType: string;
   description: string;
@@ -92,20 +111,45 @@ export interface ActivityLog {
 
 // API Functions
 export const adminApi = {
+  // Stats
   getStats: () => request<AdminStats>("?resource=stats"),
-  getClients: () => request<Client[]>("?resource=clients"),
-  getClient: (id: string) => request<Client & { establishments: AdminEstablishment[] }>(`?resource=clients&id=${id}`),
-  createClient: (data: { email: string; password: string; name: string; role?: string }) =>
-    request<Client>("?resource=clients", { method: "POST", body: JSON.stringify(data) }),
-  updateClient: (id: string, data: Partial<Client & { config: Partial<ClientConfig> }>) =>
-    request<Client>(`?resource=clients&id=${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteClient: (id: string) => request<void>(`?resource=clients&id=${id}`, { method: "DELETE" }),
-  getEstablishments: () => request<AdminEstablishment[]>("?resource=establishments"),
+  
+  // Organizations
+  getOrganizations: () => request<Organization[]>("?resource=organizations"),
+  getOrganization: (id: string) => request<Organization & { users: User[]; establishments: AdminEstablishment[] }>(`?resource=organizations&id=${id}`),
+  createOrganization: (data: { name: string; maxUsers?: number; maxEstablishments?: number }) =>
+    request<Organization>("?resource=organizations", { method: "POST", body: JSON.stringify(data) }),
+  updateOrganization: (id: string, data: Partial<Organization>) =>
+    request<Organization>(`?resource=organizations&id=${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteOrganization: (id: string) => request<void>(`?resource=organizations&id=${id}`, { method: "DELETE" }),
+  
+  // Users
+  getUsers: (organizationId?: string) => 
+    request<User[]>(organizationId ? `?resource=users&organizationId=${organizationId}` : "?resource=users"),
+  getUser: (id: string) => request<User>(`?resource=users&id=${id}`),
+  createUser: (data: { email: string; password: string; name: string; role?: string; organizationId: string }) =>
+    request<User>("?resource=users", { method: "POST", body: JSON.stringify(data) }),
+  updateUser: (id: string, data: Partial<User>) =>
+    request<User>(`?resource=users&id=${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteUser: (id: string) => request<void>(`?resource=users&id=${id}`, { method: "DELETE" }),
+  
+  // Establishments
+  getEstablishments: (organizationId?: string) => 
+    request<AdminEstablishment[]>(organizationId ? `?resource=establishments&organizationId=${organizationId}` : "?resource=establishments"),
+  
+  // Billing
+  getBilling: (organizationId: string) => request<Billing>(`?resource=billing&id=${organizationId}`),
+  updateBilling: (organizationId: string, data: Partial<Billing>) =>
+    request<Billing>(`?resource=billing&id=${organizationId}`, { method: "PATCH", body: JSON.stringify(data) }),
+  
+  // AI Templates
   getAiTemplates: () => request<AiTemplate[]>("?resource=ai-templates"),
   createAiTemplate: (data: { name: string; description?: string; promptTemplate: string; category?: string }) =>
     request<AiTemplate>("?resource=ai-templates", { method: "POST", body: JSON.stringify(data) }),
   updateAiTemplate: (id: string, data: Partial<AiTemplate>) =>
     request<AiTemplate>(`?resource=ai-templates&id=${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteAiTemplate: (id: string) => request<void>(`?resource=ai-templates&id=${id}`, { method: "DELETE" }),
+  
+  // Activity Logs
   getActivityLogs: (limit = 100) => request<ActivityLog[]>(`?resource=activity-logs&limit=${limit}`),
 };

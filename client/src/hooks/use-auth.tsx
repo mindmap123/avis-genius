@@ -5,6 +5,10 @@ interface User {
   id: string;
   email: string;
   name: string;
+  role?: "owner" | "admin" | "manager" | "viewer";
+  isSuperAdmin?: boolean;
+  organizationId?: string;
+  organizationName?: string;
 }
 
 interface AuthContextType {
@@ -12,8 +16,9 @@ interface AuthContextType {
   isLoading: boolean;
   isDemo: boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, organizationName?: string) => Promise<void>;
   loginDemo: () => void;
   logout: () => void;
 }
@@ -22,6 +27,10 @@ const DEMO_USER: User = {
   id: "demo-user",
   email: "demo@avis-genius.com",
   name: "Mode Démo",
+  role: "owner",
+  isSuperAdmin: true,
+  organizationId: "org-1",
+  organizationName: "France Canapé",
 };
 
 // Admin emails for demo mode (in production, this comes from the backend)
@@ -35,7 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isDemo, setIsDemo] = useState(false);
 
   // Check if user is admin (demo mode always has admin access for testing)
-  const isAdmin = isDemo || (user?.email ? DEMO_ADMIN_EMAILS.includes(user.email.toLowerCase()) : false);
+  const isSuperAdmin = isDemo || (user?.isSuperAdmin ?? false);
+  const isAdmin = isSuperAdmin || (user?.email ? DEMO_ADMIN_EMAILS.includes(user.email.toLowerCase()) : false);
 
   useEffect(() => {
     // Check for demo mode
@@ -65,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsDemo(false);
   };
 
-  const register = async (email: string, password: string, name: string) => {
-    const res = await auth.register(email, password, name);
+  const register = async (email: string, password: string, name: string, organizationName?: string) => {
+    const res = await auth.register(email, password, name, organizationName);
     setToken(res.token);
     setUser(res.user);
     setIsDemo(false);
@@ -86,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isDemo, isAdmin, login, register, loginDemo, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isDemo, isAdmin, isSuperAdmin, login, register, loginDemo, logout }}>
       {children}
     </AuthContext.Provider>
   );
