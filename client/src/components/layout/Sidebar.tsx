@@ -6,20 +6,22 @@ import {
   BarChart3, 
   Settings, 
   LogOut,
-  ShieldCheck
+  Globe
 } from "lucide-react";
 import logoImage from "@assets/generated_images/minimalist_geometric_logo_icon_for_reputation_software.png";
 import avatarImage from "@assets/generated_images/portrait_of_a_smiling_restaurant_owner.png";
+import { useState } from "react";
 
 const navigation = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Reviews", href: "/reviews", icon: MessageSquare },
-  { name: "Analytics & ROI", href: "/analytics", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: { fr: "Vue d'ensemble", en: "Overview" }, href: "/dashboard", icon: LayoutDashboard },
+  { name: { fr: "Avis Clients", en: "Reviews" }, href: "/reviews", icon: MessageSquare },
+  { name: { fr: "Analyses & ROI", en: "Analytics & ROI" }, href: "/analytics", icon: BarChart3 },
+  { name: { fr: "Paramètres", en: "Settings" }, href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const [location] = useLocation();
+  const [lang, setLang] = useState<"fr" | "en">("fr");
 
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-xl z-20">
@@ -39,7 +41,7 @@ export function Sidebar() {
           {navigation.map((item) => {
             const isActive = location === item.href;
             return (
-              <Link key={item.name} href={item.href}>
+              <Link key={item.href} href={item.href}>
                 <a
                   className={cn(
                     "group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-in-out",
@@ -54,12 +56,30 @@ export function Sidebar() {
                       isActive ? "text-white" : "text-sidebar-foreground/50 group-hover:text-white"
                     )}
                   />
-                  {item.name}
+                  {item.name[lang]}
                 </a>
               </Link>
             );
           })}
         </nav>
+
+        <div className="mt-8 px-3">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-sidebar-accent/30 text-xs">
+            <span className="text-sidebar-foreground/50 flex items-center gap-2">
+              <Globe className="h-3 w-3" /> Language
+            </span>
+            <div className="flex gap-1">
+              <button 
+                onClick={() => setLang("fr")}
+                className={cn("px-1.5 py-0.5 rounded", lang === 'fr' ? "bg-sidebar-primary text-white" : "hover:bg-sidebar-accent")}
+              >FR</button>
+              <button 
+                onClick={() => setLang("en")}
+                className={cn("px-1.5 py-0.5 rounded", lang === 'en' ? "bg-sidebar-primary text-white" : "hover:bg-sidebar-accent")}
+              >EN</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="border-t border-sidebar-border p-4">
